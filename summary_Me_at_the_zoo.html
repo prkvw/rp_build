@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Summary — Me at the zoo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Charter:opsz,wght@12..72,400;12..72,500;12..72,700&display=swap');
+
+        :root {
+            --parchment:    #f5f4ed;
+            --ivory:        #faf9f5;
+            --warm-sand:    #e8e6dc;
+            --brand:        #1B365D;
+            --brand-light:  #2D5A8A;
+            --brand-tint:   #EEF2F7;
+            --tag-bg:       #E4ECF5;
+            --near-black:   #141413;
+            --dark-warm:    #3d3d3a;
+            --olive:        #504e49;
+            --stone:        #6b6a64;
+            --border:       #e8e6dc;
+            --serif: Charter, Georgia, Palatino, "Times New Roman", serif;
+            --sans: var(--serif);
+            --mono: "JetBrains Mono", "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--parchment);
+            font-family: var(--serif);
+            overflow: hidden;
+        }
+
+        .deck-viewport {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            background: var(--parchment);
+        }
+
+        .deck-stage {
+            width: 1920px;
+            height: 1080px;
+            transform-origin: 0 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            width: 1920px;
+            height: 1080px;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 80px;
+        }
+
+        .slide.active,
+        .slide.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .slide-content {
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .slide.visible .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .slide.visible .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .slide.visible .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .slide.visible .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .slide.visible .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .slide.visible .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        .title-slide {
+            background: linear-gradient(135deg, var(--brand) 0%, #0f1e35 100%);
+        }
+
+        .title-slide h1 {
+            font-family: var(--serif);
+            font-size: 48pt;
+            font-weight: 500;
+            color: var(--ivory);
+            line-height: 1.15;
+            margin-bottom: 24px;
+        }
+
+        .title-slide .eyebrow {
+            font-family: var(--sans);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--tag-bg);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .title-slide .meta-row {
+            font-family: var(--sans);
+            font-size: 16px;
+            color: rgba(250, 249, 245, 0.7);
+            margin-bottom: 16px;
+        }
+
+        .title-slide .meta-sep {
+            margin: 0 12px;
+            opacity: 0.4;
+        }
+
+        .title-slide .tagline {
+            font-family: var(--serif);
+            font-size: 18px;
+            color: rgba(250, 249, 245, 0.6);
+            line-height: 1.5;
+            max-width: 900px;
+        }
+
+        .section-num {
+            font-family: var(--sans);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--brand);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-family: var(--serif);
+            font-size: 36pt;
+            font-weight: 500;
+            color: var(--near-black);
+            line-height: 1.2;
+            margin-bottom: 24px;
+            border-left: 3px solid var(--brand);
+            padding-left: 20px;
+        }
+
+        .metrics {
+            display: flex;
+            gap: 40px;
+            margin-top: 20px;
+        }
+
+        .metric {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-value {
+            font-family: var(--serif);
+            font-size: 28px;
+            font-weight: 500;
+            color: var(--brand);
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+        }
+
+        .metric-label {
+            font-family: var(--sans);
+            font-size: 12px;
+            color: var(--olive);
+        }
+
+        .body-text {
+            font-family: var(--serif);
+            font-size: 18px;
+            font-weight: 400;
+            color: var(--dark-warm);
+            line-height: 1.55;
+            max-width: 1000px;
+        }
+
+        .thesis-box {
+            background: var(--ivory);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 28px;
+            font-family: var(--serif);
+            font-size: 18px;
+            font-weight: 400;
+            color: var(--dark-warm);
+            line-height: 1.55;
+            margin-top: 12px;
+        }
+
+        .key-points {
+            list-style: none;
+            padding: 0;
+        }
+
+        .key-points li {
+            font-family: var(--serif);
+            font-size: 18px;
+            color: var(--dark-warm);
+            line-height: 1.5;
+            padding: 10px 0 10px 28px;
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .key-points li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--brand);
+        }
+
+        .quote {
+            border-left: 2px solid var(--brand);
+            padding: 8px 0 8px 20px;
+            margin-top: 24px;
+        }
+
+        .quote p {
+            font-family: var(--serif);
+            font-size: 17px;
+            font-weight: 400;
+            color: var(--olive);
+            line-height: 1.55;
+            font-style: italic;
+        }
+
+        .chapter-slide {
+            background: var(--ivory);
+        }
+
+        .chapter-slide h2 {
+            font-family: var(--serif);
+            font-size: 32pt;
+            font-weight: 500;
+            color: var(--near-black);
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        .chapter-label {
+            font-family: var(--sans);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--brand);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .chapter-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .chapter-list li {
+            font-family: var(--serif);
+            font-size: 16px;
+            color: var(--dark-warm);
+            line-height: 1.5;
+            padding: 8px 12px;
+            background: var(--ivory);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .transcript-container {
+            max-height: 700px;
+            overflow-y: auto;
+            background: var(--ivory);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .transcript-line {
+            font-family: var(--serif);
+            font-size: 15px;
+            color: var(--dark-warm);
+            line-height: 1.55;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(232, 230, 220, 0.5);
+        }
+
+        .ts {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--brand);
+            font-weight: 500;
+            margin-right: 10px;
+            min-width: 55px;
+            display: inline-block;
+        }
+
+        .timestamp {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--stone);
+        }
+
+        .slide-nav {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            z-index: 100;
+            background: var(--ivory);
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            padding: 10px 20px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        }
+
+        .slide-nav button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: var(--serif);
+            font-size: 16px;
+            color: var(--brand);
+            padding: 4px 12px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .slide-nav button:hover {
+            background: var(--brand-tint);
+        }
+
+        .slide-nav .counter {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--stone);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .slide-nav .progress-bar {
+            width: 120px;
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .slide-nav .progress-fill {
+            height: 100%;
+            background: var(--brand);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        @media print {
+            body { overflow: visible; }
+            .deck-viewport { position: relative; }
+            .slide { position: relative; visibility: visible; opacity: 1; break-after: page; page-break-after: always; }
+            .slide-nav { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="deck-viewport">
+        <main class="deck-stage" id="deckStage">
+            
+    <section class="slide title-slide">
+        <div class="slide-content">
+            <p class="reveal eyebrow">YouTube Video Summary</p>
+            <h1 class="reveal">Me at the zoo</h1>
+            <div class="reveal meta-row">
+                <span class="meta-author">jawed</span>
+                <span class="meta-sep">·</span>
+                <span class="meta-duration">19s</span>
+            </div>
+            <p class="reveal tagline">Microplastics are accumulating in human brains at an alarming rate
+https://www.youtube.com/watch?v=0PT5c1z3LL8
+
+“Nanoplastics and Human Health” with Matthew J Campen, PhD, MSPH
+https://www.youtube.com...</p>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">01 · Overview</p>
+            <h2 class="reveal section-title">Video Information</h2>
+            <div class="reveal metrics">
+                <div class="metric">
+                    <span class="metric-value">jawed</span>
+                    <span class="metric-label">Creator</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value">19s</span>
+                    <span class="metric-label">Duration</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value">39</span>
+                    <span class="metric-label">Words</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">02 · Core Thesis</p>
+            <h2 class="reveal section-title">Core Thesis</h2>
+            <div class="reveal thesis-box">
+                <p>Microplastics are accumulating in human brains at an alarming rate
+https://www.youtube.com/watch?v=0PT5c1z3LL8
+
+“Nanoplastics and Human Health” with Matthew J Campen, PhD, MSPH
+https://www.youtube.com/watch?v=RRBN_4L09Mg
+
+00:00 Intro
+00:05 The cool thing
+00:17 End</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">03 · Key Points</p>
+            <h2 class="reveal section-title">Key Points</h2>
+            <ul class="reveal key-points">
+                <li>Main arguments and conclusions from the video</li>
+                <li>Crucial facts and conceptual takeaways</li>
+                <li>Actionable insights and practical applications</li>
+                <li>Critical distinctions and clarifications made</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">04 · Contextual Framework</p>
+            <h2 class="reveal section-title">Contextual Framework</h2>
+            <p class="reveal body-text">Philosophical and theoretical underpinnings that shape the content. Historical and cultural context that informs the creator's perspective.</p>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">05 · Detailed Breakdown</p>
+            <h2 class="reveal section-title">Detailed Breakdown</h2>
+            <p class="reveal body-text">Section-by-section analysis with timestamps, capturing all significant content, arguments, and illustrative examples.</p>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">06 · Nuanced Perspectives</p>
+            <h2 class="reveal section-title">Nuanced Perspectives</h2>
+            <p class="reveal body-text">Competing viewpoints, counterarguments, qualifiers, and limitations acknowledged in the content.</p>
+            <div class="reveal quote">
+                <p>Notable quotes and key passages that capture the essence of the argument.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">07 · Underlying Assumptions</p>
+            <h2 class="reveal section-title">Underlying Assumptions</h2>
+            <p class="reveal body-text">Unstated premises, worldviews, and biases that inform the content. Implicit frameworks and methodological approaches used.</p>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">08 · Connections & Implications</p>
+            <h2 class="reveal section-title">Connections & Implications</h2>
+            <p class="reveal body-text">How this content connects to broader ideas, movements, and disciplines. Practical applications and suggested next steps.</p>
+        </div>
+    </section>
+    
+            
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">Chapters</p>
+            <h2 class="reveal section-title">Video Chapters</h2>
+            <ul class="reveal chapter-list"><li class="reveal"><span class="ts">0:00</span> Intro</li><li class="reveal"><span class="ts">0:05</span> The cool thing</li><li class="reveal"><span class="ts">0:17</span> End</li></ul>
+        </div>
+    </section>
+    
+            
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">09 · Transcript</p>
+            <h2 class="reveal section-title">Full Transcript</h2>
+            <div class="reveal transcript-container">
+                <p class="reveal transcript-line"><span class="ts">0:01</span> All right, so here we are, in front of the elephants</p><p class="reveal transcript-line"><span class="ts">0:05</span> the cool thing about these guys is that they have really...</p><p class="reveal transcript-line"><span class="ts">0:07</span> really really long trunks</p><p class="reveal transcript-line"><span class="ts">0:12</span> and that&#x27;s cool</p><p class="reveal transcript-line"><span class="ts">0:14</span> (baaaaaaaaaaahhh!!)</p><p class="reveal transcript-line"><span class="ts">0:16</span> and that&#x27;s pretty much all there is to say</p>
+            </div>
+        </div>
+    </section>
+    
+            <section class="slide chapter-slide">
+                    <div class="slide-content">
+                        <p class="reveal chapter-label">Chapter</p>
+                        <h2 class="reveal">Intro</h2>
+                        <p class="reveal timestamp">0:00</p>
+                    </div>
+                </section>
+<section class="slide chapter-slide">
+                    <div class="slide-content">
+                        <p class="reveal chapter-label">Chapter</p>
+                        <h2 class="reveal">The cool thing</h2>
+                        <p class="reveal timestamp">0:05</p>
+                    </div>
+                </section>
+<section class="slide chapter-slide">
+                    <div class="slide-content">
+                        <p class="reveal chapter-label">Chapter</p>
+                        <h2 class="reveal">End</h2>
+                        <p class="reveal timestamp">0:17</p>
+                    </div>
+                </section>
+        </main>
+    </div>
+
+    <nav class="slide-nav" id="slideNav">
+        <button id="prevSlide" aria-label="Previous slide">←</button>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <span class="counter" id="slideCounter">1 / 1</span>
+        <button id="nextSlide" aria-label="Next slide">→</button>
+    </nav>
+
+    <script>
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.current = 0;
+                this.stage = document.getElementById('deckStage');
+                this.counter = document.getElementById('slideCounter');
+                this.progressFill = document.getElementById('progressFill');
+
+                this.setupStageScale();
+                this.setupNavigation();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.showSlide(0);
+
+                window.addEventListener('resize', () => this.setupStageScale());
+            }
+
+            setupStageScale() {
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                const scale = Math.min(w / 1920, h / 1080);
+                const x = (w - 1920 * scale) / 2;
+                const y = (h - 1080 * scale) / 2;
+                this.stage.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+            }
+
+            showSlide(index) {
+                if (index < 0 || index >= this.slides.length) return;
+                this.slides.forEach(s => s.classList.remove('active', 'visible'));
+                this.current = index;
+                this.slides[index].classList.add('active');
+                requestAnimationFrame(() => {
+                    this.slides[index].classList.add('visible');
+                });
+                this.counter.textContent = `${index + 1} / ${this.slides.length}`;
+                this.progressFill.style.width = `${((index + 1) / this.slides.length) * 100}%`;
+            }
+
+            setupNavigation() {
+                document.getElementById('prevSlide').addEventListener('click', () => this.showSlide(this.current - 1));
+                document.getElementById('nextSlide').addEventListener('click', () => this.showSlide(this.current + 1));
+            }
+
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                        e.preventDefault();
+                        this.showSlide(this.current + 1);
+                    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        this.showSlide(this.current - 1);
+                    }
+                });
+            }
+
+            setupTouchNav() {
+                let startX = 0;
+                this.stage.addEventListener('touchstart', (e) => { startX = e.changedTouches[0].screenX; });
+                this.stage.addEventListener('touchend', (e) => {
+                    const diff = startX - e.changedTouches[0].screenX;
+                    if (Math.abs(diff) > 50) {
+                        this.showSlide(this.current + (diff > 0 ? 1 : -1));
+                    }
+                });
+            }
+        }
+
+        new SlidePresentation();
+    </script>
+</body>
+</html>
